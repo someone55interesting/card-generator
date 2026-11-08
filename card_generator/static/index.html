@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Генератор карточек товаров</title>
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14181f;--mut:#667085;--bd:#e4e7ec;--ac:#2f5bea;--ok:#12805c;--okb:#e6f6ef;--wr:#b54708;--wrb:#fff4e5;--er:#b42318;--erb:#fdecea}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#171a21;--tx:#e8eaee;--mut:#98a1b3;--bd:#2a2f3a;--ac:#7c9cff;--ok:#5fd3a5;--okb:#12261f;--wr:#f5b45f;--wrb:#2b2113;--er:#ff8a80;--erb:#2d1816}}
+*{box-sizing:border-box}body{margin:0;font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--tx)}
+header{padding:22px 24px 8px;max-width:1280px;margin:auto}h1{margin:0;font-size:22px}header p{margin:4px 0 0;color:var(--mut)}
+main{display:grid;grid-template-columns:minmax(300px,420px) 1fr;gap:18px;max-width:1280px;margin:auto;padding:16px 24px 48px}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px}
+.card h2{margin:0 0 10px;font-size:13px;text-transform:uppercase;letter-spacing:.05em;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+textarea,input{width:100%;font:13px/1.45 ui-monospace,Menlo,Consolas,monospace;background:var(--bg);color:var(--tx);border:1px solid var(--bd);border-radius:10px;padding:10px}
+textarea{min-height:300px;resize:vertical}input{font-family:inherit;font-size:14px}
+button{font:inherit;cursor:pointer;border-radius:10px;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:7px 12px}
+button.pri{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:600;width:100%;padding:11px;margin-top:10px}
+button:disabled{opacity:.55;cursor:wait}button.sm{padding:3px 9px;font-size:12px;color:var(--mut)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}.row input{flex:1}
+.tabs button.on{border-color:var(--ac);color:var(--ac)}
+.chip{display:inline-block;font-size:12px;padding:2px 9px;border-radius:99px;margin:0 6px 6px 0}
+.ok{background:var(--okb);color:var(--ok)}.wr{background:var(--wrb);color:var(--wr)}.er{background:var(--erb);color:var(--er)}
+.banner{padding:10px 12px;border-radius:10px;margin-bottom:12px;font-size:14px}
+table{width:100%;border-collapse:collapse}td{padding:6px 8px;border-top:1px solid var(--bd);vertical-align:top}td:first-child{color:var(--mut);width:42%}
+td.nd{color:var(--wr);font-style:italic}ul{margin:4px 0 0;padding-left:20px}
+.res>.card{margin-bottom:14px}.empty{color:var(--mut);text-align:center;padding:60px 10px}
+.sp{display:inline-block;width:14px;height:14px;border:2px solid #fff6;border-top-color:#fff;border-radius:50%;animation:r .8s linear infinite;vertical-align:-2px;margin-right:8px}@keyframes r{to{transform:rotate(360deg)}}
+.toolbar{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap}
+</style>
+</head>
+<body>
+<header><h1>Генератор карточек товаров</h1><p>КИП и автоматика · черновик для контент-менеджера · все характеристики берутся только из входных данных</p></header>
+<main>
+<section class="card">
+  <h2>Входные данные</h2>
+  <div class="row tabs"><button id="tj" class="on">JSON</button><button id="tu">По ссылке</button></div>
+  <div id="pj"><div class="row" id="exs"></div><textarea id="json" spellcheck="false" placeholder='{"name": "...", "manufacturer": "...", "specs": {"...": "..."}, "description": "..."}'></textarea></div>
+  <div id="pu" hidden><div class="row"><input id="url" placeholder="https://… страница товара"><button id="load">Загрузить</button></div><div id="uinfo"></div></div>
+  <button class="pri" id="go">Сформировать карточку</button>
+  <div id="err" class="banner er" hidden style="margin-top:10px"></div>
+</section>
+<section class="res" id="res"><div class="card empty">Здесь появится карточка товара</div></section>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const h=(t,a={},...c)=>{const e=document.createElement(t);for(const[k,v]of Object.entries(a))k==="class"?e.className=v:e.setAttribute(k,v);c.flat().forEach(x=>e.append(x));return e};
+async function api(p,b){const r=await fetch(p,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(b)});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.detail||("Ошибка "+r.status));return d}
+function err(m){const e=$("#err");e.textContent=m||"";e.hidden=!m}
+function tab(j){$("#pj").hidden=!j;$("#pu").hidden=j;$("#tj").classList.toggle("on",j);$("#tu").classList.toggle("on",!j)}
+$("#tj").onclick=()=>tab(true);$("#tu").onclick=()=>tab(false);
+fetch("/api/examples").then(r=>r.json()).then(list=>{list.forEach((p,i)=>{const b=h("button",{class:"sm"},"Пример "+(i+1));b.onclick=()=>{$("#json").value=JSON.stringify(p,null,2)};$("#exs").append(b)});if(list[0])$("#json").value=JSON.stringify(list[0],null,2)});
+function busy(b,on,t){b.disabled=on;b.replaceChildren(...(on?[h("span",{class:"sp"}),t]:[t]))}
+$("#load").onclick=async()=>{err();const b=$("#load");busy(b,true,"Читаю…");try{const d=await api("/api/extract",{url:$("#url").value});$("#json").value=JSON.stringify(d.product,null,2);const i=$("#uinfo");i.replaceChildren();
+ i.append(h("span",{class:"chip ok"},"Данные извлечены и сверены с текстом страницы"));
+ if(d.dropped.length)i.append(h("div",{class:"banner wr"},"Отброшено как неподтверждённое страницей: "+d.dropped.join("; ")));
+ if(d.missing.length)i.append(h("div",{class:"banner wr"},"Нет данных: "+d.missing.join(", ")));tab(true)}catch(e){err(e.message)}busy(b,false,"Загрузить")};
+const copy=(t,b)=>navigator.clipboard.writeText(t).then(()=>{const o=b.textContent;b.textContent="Скопировано";setTimeout(()=>b.textContent=o,1200)});
+const sec=(title,text,body)=>{const b=h("button",{class:"sm"},"Копировать");b.onclick=()=>copy(text,b);return h("div",{class:"card"},h("h2",{},title,b),body)};
+function render(d){const r=$("#res");r.replaceChildren();
+ const ok=!d.warnings.length;
+ r.append(h("div",{class:"banner "+(ok?"ok":"wr")},ok?"✓ Автопроверки пройдены: длины, числа и юридически значимые термины подтверждены входными данными. Всё равно просмотрите текст перед публикацией.":"⚠ Требует проверки человеком: "+d.warnings.join("; ")));
+ const tb=h("div",{class:"toolbar"});const a=h("button",{},"Копировать всё (Markdown)");a.onclick=()=>copy(d.markdown,a);
+ const j=h("button",{},"Скачать JSON");j.onclick=()=>{const l=h("a",{href:URL.createObjectURL(new Blob([JSON.stringify(d,null,2)],{type:"application/json"})),download:"card.json"});l.click()};tb.append(a,j);r.append(tb);
+ const tl=d.seo_title.length,dl=d.seo_description.length;
+ r.append(sec("SEO-заголовок",d.seo_title,h("div",{},h("div",{},d.seo_title),h("span",{class:"chip "+(tl<=70?"ok":"er")},tl+" / 70"))));
+ r.append(sec("SEO-описание",d.seo_description,h("div",{},h("p",{},d.seo_description),h("span",{class:"chip "+(dl>=800&&dl<=1200?"ok":"er")},dl+" симв. (норма 800–1200)"))));
+ const tbl=h("table");d.key_specs.forEach(s=>tbl.append(h("tr",{},h("td",{},s.name),h("td",{class:s.value==="данных нет"?"nd":""},s.value))));
+ r.append(sec("Ключевые характеристики",d.key_specs.map(s=>s.name+": "+s.value).join("\n"),tbl));
+ r.append(sec("Поисковые запросы",d.search_queries.join("\n"),h("ul",{},d.search_queries.map(q=>h("li",{},q)))));
+ const cb=d.commercial_block;
+ r.append(sec("Для менеджера",["Кому подходит:",...cb.suitable_for,"Задачи:",...cb.tasks_solved].join("\n"),h("div",{},h("b",{},"Кому подходит"),h("ul",{},cb.suitable_for.map(x=>h("li",{},x))),h("b",{},"Какие задачи решает"),h("ul",{},cb.tasks_solved.map(x=>h("li",{},x))))));
+ r.append(sec("Что уточнить (данных нет)",d.missing_data.join("\n"),d.missing_data.length?h("div",{},d.missing_data.map(m=>h("span",{class:"chip wr"},m))):h("span",{class:"chip ok"},"всё необходимое есть")))}
+$("#go").onclick=async()=>{err();let p;try{p=JSON.parse($("#json").value)}catch(e){return err("Некорректный JSON: "+e.message)}
+ const b=$("#go");busy(b,true,"Генерирую…");try{render(await api("/api/generate",{product:p}))}catch(e){err(e.message)}busy(b,false,"Сформировать карточку")};
+</script>
+</body></html>
